@@ -24,9 +24,9 @@ class ExcelFrame(tk.Frame):
                                               title='Select File', filetypes=self.filetype)
 
         self.fileRegex = re.compile(r'''
-                        [\w\.-]+      # one or more letters, digits, periods, hyphens
+                        [\w\.-]+      # one or more letters, digits, underscores, periods, hyphens
                         \.            # one period
-                        [\w-]+$       # one or more letters, digits, hyphens.
+                        [\w-]+$       # one or more letters, digits, underscores, hyphens.
                         ''', re.VERBOSE)
         self.fileMo = self.fileRegex.search(self.filePath)
         if (self.fileMo):
