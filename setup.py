@@ -74,7 +74,7 @@ def userRegistration(username):
 
         print('Passwords did not match!')
 
-    
+    # MAYBE MAKE SECOND JSON FOR KEYS
     
     
 # Command line version ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
