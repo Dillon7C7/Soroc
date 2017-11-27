@@ -1,44 +1,112 @@
 #! python3
 
-import json, sys
+import json, sys, os
 import cipher
 
-# {user: username, pass: password}
+
+## USE OOP LATER
+
+
+# {user: pass, user2: pass2, user3: pass3...}
+# {user: key}
 configData = {}
-configData.setdefault('user', '')
-configData.setdefault('password', '')
+cipherKey = {}
+
+
+##configData.setdefault('user', '')
+##configData.setdefault('password', '')
 cipherSuite = None
 
+def enableProtectedMode():
+    '''Enable protected mode in Internet Explorer'''
+    # SECURITY ZONES ARE AS FOLLOWS:
+    # 0 is the Local Machine zone
+    # 1 is the Intranet zone
+    # 2 is the Trusted Sites zone
+    # 3 is the Internet zone
+    # 4 is the Restricted Sites zone
+    # CHANGING THE SUBKEY VALUE "2500" TO DWORD 0 ENABLES PROTECTED MODE FOR THAT ZONE.
+    # IN THE CODE BELOW THAT VALUE IS WITHIN THE "SetValueEx" FUNCTION AT THE END AFTER "REG_DWORD".
+    #os.system("taskkill /F /IM iexplore.exe")
+    # need 1 2 3 4
+
+    keyVal = r'Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\\' 
+         
+    try:
+        for c in range(5):      
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, keyVal + str(c), 0, winreg.KEY_ALL_ACCESS)
+            winreg.SetValueEx(key, '2500', 0, winreg.REG_DWORD, 0)
+        print('enabled protected mode')
+    except Exception as e:
+        print('failed to enable protected mode', e)
+
+
+def isNonZeroFile(fpath):
+    '''returns true if file fpath both exists and is not empty'''
+    return os.path.isfile(fpath) and os.path.getsize(fpath) > 0
+
 def isEqualPassword(pw1, pw2):
+    '''returns true if strings pw1 and pw2 match, else false'''
     return pw1 == pw2
 
-def UserRegistration(newUsername): 
+def userRegistration(username):
+    
+    print('First time using this program? Need your login credentials')
     
     while True:
 
-        pw1 = win_getpass()
-        pw2 = win_getpass('Enter password again: ')
+        pw1 = winGetPass()
+        pw2 = winGetPass('Enter password again: ')
 
         if isEqualPassword(pw1, pw2):
-            global cipherSuite
+            
             cipherSuite = cipher.generateCipherSuite() # generate a cipher suite
-            encryptedPass = cipher.encrypt(pw1, cipherSuite)  
+            cipherKey[username] = cipherSuite
+            
+            encryptedPass = cipher.encrypt(pw1, cipherSuite)
+            
+            configData[username] = encryptedPass.decode('UTF-8') # string for JSON
+            with open('config.json', 'w') as f:
+                data = json.load(f) # get dictionary in json
+                updatedData = dict(data.items() + configData.items()) # make new dict with json values + new user
+                json.dump(updatedData, f) # write to json
             break
 
         print('Passwords did not match!')
 
-    configData['user'] = newUsername
-    configData['password'] = encryptedPass.decode('UTF-8') # string for JSON
+    
+    
+    
+# Command line version ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def userLogin(): 
 
+    print('Enter your username: ', end='')
+    username = input()
 
-    # write to JSON
-    with open('config22.json', 'w') as f:
-        json.dump(configData, f)
+    if not isNonZeroFile('config.json'):
+        with open('config.json', 'w') as f:
+            json.dump({username: ''}, f)
 
+        
+    with open('config.json', 'r') as f:
+        data = json.load(f)
+
+        if username not in data: 
+            userRegistration(username)  # register user
+        else:
+            while True:
+                
+                password = winGetPass()
+                encryptedPass = cipher.encrypt(password, cipherKey[username])
+                
+                if isEqualPassword(encryptedPass, data[username].encode('UTF-8')):
+                    break
+
+                print('Password incorrect!')
 
 
 # borrowed***
-def win_getpass(prompt='Password: ', stream=None):
+def winGetPass(prompt='Password: ', stream=None):
     """Prompt for password with echo off, using Windows getch()."""
 ##    if sys.stdin is not sys.__stdin__:
 ##        return fallback_getpass(prompt, stream)
