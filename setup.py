@@ -9,8 +9,7 @@ import cipher
 
 # {user1: (encyrptedPass1, cipherKey), user2: (encyrptedPass2, cipherKey),...}
 # [configData1, configData2,...]
-configData = {}
-listOfUsers = [cipher.generateKey()]
+
 
 def enableProtectedMode():
     '''Enable protected mode in Internet Explorer'''
@@ -58,17 +57,22 @@ def userRegistration(username):
         pw2 = winGetPass('Enter password again: ')
 
         if isEqualPassword(pw1, pw2):
-            
-            cipherSuite = cipher.generateCipherSuite(keyForAll) # generate a cipher suite
-            cipherKey[username] = cipherSuite
+
+            with open('config.json', 'r') as f:
+                data = json.load(f)
+                
+            cipherSuite = cipher.generateCipherSuite(data[0]) # generate a cipher suite
+                                                              # from key in list in json config
             
             encryptedPass = cipher.encrypt(pw1, cipherSuite)
             
+            configData = {}
             configData[username] = encryptedPass.decode('UTF-8') # string for JSON
             with open('config.json', 'w') as f:
-                data = json.load(f) # get dictionary in json
-                updatedData = dict(data.items() + configData.items()) # make new dict with json values + new user
-                json.dump(updatedData, f) # write to json
+                data = json.load(f) # get list in json
+                data.append(configData)
+                json.dump(data, f) # write to json
+                
             break
 
         print('Passwords did not match!')
@@ -83,6 +87,10 @@ def userLogin():
     username = input()
 
     if not isFile('config.json'):  # if the config file doesn't exist, create one
+                                   # don't generate a new key if the file exists!
+
+        listOfKeyAndUsers = [cipher.generateKey()]
+                                   
         with open('config.json', 'w') as f:
             json.dump(listOfKeyAndUsers, f)
 
@@ -92,16 +100,24 @@ def userLogin():
         for element in data[1:]: # find the dict containing user information, skip key
             if username not in element:
                 userRegistration(username)  # register user
-                
-            else:         # "login"
-                userInfo = element
                 break
+            else:         # "login"
+                userInfo = element  # assign the element that we need to a variable
+                break               # break out of the loop because we have a user match
                 while True:
                     
                     password = winGetPass()
-                    encryptedPass = cipher.encrypt(password, cipherKey[username])
+
+                    cipherSuite = cipher.generateCipherSuite(data[0]) # generate a cipher suite
+                                                              # from key in list in json config
+                                                              
+                    encryptedPass = cipher.encrypt(password, cipherSuite)
+
+
+
                     
                     if isEqualPassword(encryptedPass, data[username].encode('UTF-8')):
+                        print('Login success!')
                         break
 
                     print('Password incorrect!')
