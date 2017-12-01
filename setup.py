@@ -7,15 +7,10 @@ import cipher
 ## USE OOP LATER
 
 
-# {user: pass, user2: pass2, user3: pass3...}
-# {user: key}
+# {user1: (encyrptedPass1, cipherKey), user2: (encyrptedPass2, cipherKey),...}
+# [configData1, configData2,...]
 configData = {}
-cipherKey = {}
-
-
-##configData.setdefault('user', '')
-##configData.setdefault('password', '')
-cipherSuite = None
+listOfUsers = [cipher.generateKey()]
 
 def enableProtectedMode():
     '''Enable protected mode in Internet Explorer'''
@@ -41,9 +36,13 @@ def enableProtectedMode():
         print('failed to enable protected mode', e)
 
 
-def isNonZeroFile(fpath):
-    '''returns true if file fpath both exists and is not empty'''
-    return os.path.isfile(fpath) and os.path.getsize(fpath) > 0
+##def isNonZeroFile(fpath):
+##    '''returns true if file fpath both exists and is not empty'''
+##    return os.path.isfile(fpath) and os.path.getsize(fpath) > 0
+
+def isFile(fpath):
+    '''returns true if file fpath exists'''
+    return os.path.isfile(fpath)
 
 def isEqualPassword(pw1, pw2):
     '''returns true if strings pw1 and pw2 match, else false'''
@@ -60,7 +59,7 @@ def userRegistration(username):
 
         if isEqualPassword(pw1, pw2):
             
-            cipherSuite = cipher.generateCipherSuite() # generate a cipher suite
+            cipherSuite = cipher.generateCipherSuite(keyForAll) # generate a cipher suite
             cipherKey[username] = cipherSuite
             
             encryptedPass = cipher.encrypt(pw1, cipherSuite)
@@ -83,31 +82,34 @@ def userLogin():
     print('Enter your username: ', end='')
     username = input()
 
-    if not isNonZeroFile('config.json'):
+    if not isFile('config.json'):  # if the config file doesn't exist, create one
         with open('config.json', 'w') as f:
-            json.dump({username: ''}, f)
+            json.dump(listOfKeyAndUsers, f)
 
-        
     with open('config.json', 'r') as f:
         data = json.load(f)
-
-        if username not in data: 
-            userRegistration(username)  # register user
-        else:
-            while True:
+        
+        for element in data[1:]: # find the dict containing user information, skip key
+            if username not in element:
+                userRegistration(username)  # register user
                 
-                password = winGetPass()
-                encryptedPass = cipher.encrypt(password, cipherKey[username])
-                
-                if isEqualPassword(encryptedPass, data[username].encode('UTF-8')):
-                    break
+            else:         # "login"
+                userInfo = element
+                break
+                while True:
+                    
+                    password = winGetPass()
+                    encryptedPass = cipher.encrypt(password, cipherKey[username])
+                    
+                    if isEqualPassword(encryptedPass, data[username].encode('UTF-8')):
+                        break
 
-                print('Password incorrect!')
+                    print('Password incorrect!')
 
 
 # borrowed***
-def winGetPass(prompt='Password: ', stream=None):
-    """Prompt for password with echo off, using Windows getch()."""
+def winGetPass(prompt='Password: ', promptChar='*', stream=None):
+    '''Prompt for password with echo off, using Windows getch().'''
 ##    if sys.stdin is not sys.__stdin__:
 ##        return fallback_getpass(prompt, stream)
     import msvcrt
@@ -130,7 +132,7 @@ def winGetPass(prompt='Password: ', stream=None):
                 msvcrt.putwch('\b')
         else:
             pw = pw + c
-            msvcrt.putwch('*')
+            msvcrt.putwch(promptChar)
     msvcrt.putwch('\r')
     msvcrt.putwch('\n')
     return pw

@@ -1,8 +1,13 @@
 from cryptography.fernet import Fernet
 
-def generateCipherSuite():
+def generateKey():
+    '''Generate and return a bytes literal key'''
+    return Fernet.generate_key()
+
+def generateCipherSuite(key=None):
     '''Generates a key and a cipher suite using that key; returns that suite'''
-    key = Fernet.generate_key()
+    if not key:
+        key = Fernet.generate_key()
     cipherSuite = Fernet(key)
     return cipherSuite
 
